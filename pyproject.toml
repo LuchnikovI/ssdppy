@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "ssdppy"
+version = "0.0.1"
+description = "Python implementation of Sketchy SGAL method"
+authors = ["Ilia Luchnikov <ilia.luchnikov@tii.ae>"]
+packages = [{ include = "ssdppy", from = '.' }]
+
+[tool.poetry.dependencies]
+python = ">=3.10" 
+numpy = "^1"
+scipy = "^1"
+sparse_sdp = { path = "ssdppy/sparse_sdp/", develop = true}
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

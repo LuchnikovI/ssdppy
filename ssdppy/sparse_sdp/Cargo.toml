@@ -1,0 +1,16 @@
+[package]
+name = "sparse_sdp"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "sparse_sdp"
+
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.21.0", features = ["extension-module"] }
+num-traits = "0.2.19"
+numpy = "0.21.0"
+num-complex = "0.4.6"
+itertools = "0.13.0"

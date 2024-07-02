@@ -1,0 +1,40 @@
+name: Python code CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    - name: Install validation components
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install pytest mypy black pylint
+    - name: Install ssdppy library
+      run: |
+        python3 -m pip install .
+    - name: Formatting validation
+      run: |
+        python3 -m black --check ./ssdppy
+    - name: Type checking
+      run: |
+        python3 -m mypy ./ssdppy
+    - name: Running linter
+      run: |
+        python3 -m pylint --fail-under=0. ./ssdppy
+    - name: Running tests
+      run: |
+        ./tests/run_all.sh
+        python3 -m pytest
