@@ -44,23 +44,21 @@ impl<T> SDPBuilder<T> {
             });
         }
         let coordinate = (batch_idx, row_idx, col_idx);
-        if self.coordinates.contains_key(&coordinate) {
-            if batch_idx == 1 {
-                Err(SDPError::RepeatedPosition {
-                    constraint_number: None,
-                    row_idx,
-                    col_idx,
-                })
-            } else {
-                Err(SDPError::RepeatedPosition {
-                    constraint_number: Some(batch_idx - 1),
-                    row_idx,
-                    col_idx,
-                })
-            }
-        } else {
-            self.coordinates.insert(coordinate, element);
+        if let std::collections::btree_map::Entry::Vacant(e) = self.coordinates.entry(coordinate) {
+            e.insert(element);
             Ok(())
+        } else if batch_idx == 1 {
+            Err(SDPError::RepeatedPosition {
+                constraint_number: None,
+                row_idx,
+                col_idx,
+            })
+        } else {
+            Err(SDPError::RepeatedPosition {
+                constraint_number: Some(batch_idx - 1),
+                row_idx,
+                col_idx,
+            })
         }
     }
     #[inline(always)]
