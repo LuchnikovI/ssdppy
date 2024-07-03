@@ -44,7 +44,7 @@ impl<T> SDPBuilder<T> {
             });
         }
         let coordinate = (batch_idx, row_idx, col_idx);
-        if self.coordinates.get(&coordinate).is_some() {
+        if self.coordinates.contains_key(&coordinate) {
             if batch_idx == 1 {
                 Err(SDPError::RepeatedPosition {
                     constraint_number: None,
