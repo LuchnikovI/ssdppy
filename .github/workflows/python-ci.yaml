@@ -21,7 +21,7 @@ jobs:
     - name: Install validation components
       run: |
         python3 -m pip install --upgrade pip
-        pip install pytest mypy black pylint
+        pip install pytest mypy black pylint cvxpy
     - name: Install ssdppy library
       run: |
         python3 -m pip install .
