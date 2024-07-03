@@ -1,5 +1,5 @@
 use crate::{sdp::Sdp, sdp_builder::SDPBuilder};
-use num_traits::One;
+use num_traits::{One, Zero};
 use numpy::{PyArray1, PyArrayMethods};
 use pyo3::{exceptions::PyValueError, pyclass, pymethods, Bound, Py, PyErr, PyResult, Python};
 use std::borrow::BorrowMut;
@@ -47,6 +47,22 @@ macro_rules! impl_sdppy {
                     .add_element(constraint_number + 1, row_idx, col_idx, element)
                     .map_err(|err| err.into())
             }
+            pub fn normalize_objective_matrix(&mut self) {
+                let mut norm = $dtype::zero();
+                for (key, val) in self.builder.coordinates.iter() {
+                    if key.0 != 0 {
+                        break;
+                    }
+                    norm += val * val;
+                }
+                norm = norm.sqrt();
+                for (key, val) in self.builder.coordinates.iter_mut() {
+                    if key.0 != 0 {
+                        break;
+                    }
+                    *val /= norm;
+                }
+            }
             pub fn add_element_to_b_vector(
                 &mut self,
                 py: Python<'_>,
@@ -61,6 +77,26 @@ macro_rules! impl_sdppy {
                         let total_constraints_number = self.builder.get_constraints_number();
                         return Err(PyValueError::new_err(format!("Constraint number {constraint_number} is out of total constraints number {total_constraints_number}")))
                     }
+                }
+                Ok(())
+            }
+            pub fn add_maxcut_constraints(
+                &mut self,
+                py: Python<'_>,
+            ) -> PyResult<()> {
+                let constraints_number = self.builder.get_constraints_number();
+                let variables_number = self.builder.get_variables_number();
+                if constraints_number != variables_number {
+                    return Err(PyValueError::new_err(format!("Cannot initialize maxcut constraints since the number of constraints {constraints_number} does not match the variables number {variables_number}")))
+                }
+                let b_val = 1. / constraints_number as $dtype;
+                let b_slice = unsafe { self.b.bind(py).borrow_mut().as_slice_mut()? };
+                assert_eq!(b_slice.len(), constraints_number);
+                for b_dst in b_slice.iter_mut() {
+                    *b_dst = b_val;
+                }
+                for constr_num in 0..constraints_number {
+                    self.add_element_to_constraint_matrix(constr_num, constr_num, constr_num, $dtype::one())?;
                 }
                 Ok(())
             }
@@ -172,7 +208,7 @@ macro_rules! impl_sdppy {
             }
             fn __repr__(&self) -> String {
                 format!(
-                    "sparse_sdp_builder:\n\tdtype_name: {}\n\tconstraints_number: {}\n\tvariables_number: {}\n\ttotal_non_zero_elements_number: {}",
+                    "sparse_sdp:\n\tdtype_name: {}\n\tconstraints_number: {}\n\tvariables_number: {}\n\ttotal_non_zero_elements_number: {}",
                     self.sdp.dtype_name(),
                     self.sdp.get_constraints_number(),
                     self.sdp.get_variables_number(),
