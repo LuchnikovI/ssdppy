@@ -22,10 +22,6 @@ pub(super) enum SDPError {
         total_constraints_number: usize,
         constraint_number: usize,
     },
-    ConstraintsNumberBSizeMismatch {
-        total_constraints_number: usize,
-        b_size: usize,
-    },
     ZeroConstraint(usize),
 }
 
@@ -69,12 +65,6 @@ impl Display for SDPError {
                     f,
                     "Column index {col_idx} is out of total {variables_number} variables"
                 )?;
-            }
-            SDPError::ConstraintsNumberBSizeMismatch {
-                total_constraints_number,
-                b_size,
-            } => {
-                write!(f, "Size of b and number of constraints must be equal, got b size: {b_size} and constraints number: {total_constraints_number}")?
             }
         }
         Ok(())

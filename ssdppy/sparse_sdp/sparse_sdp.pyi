@@ -31,20 +31,22 @@ class SDPBuilderF32:
     https://arxiv.org/pdf/1912.02949.
     Args:
         constraints_number: number of constraints;
-        variables_number: number of variables;
-        b: array b from the SDP above."""
+        variables_number: number of variables."""
 
-    def __init__(
-        self, constraints_number: int, variables_number: int, b: NDArray
-    ) -> None: ...
+    def __init__(self, constraints_number: int, variables_number: int) -> None: ...
     """A value insertion to a particular position in the objective function matrix.
     Args:
         row_idx: a row index of the insertion;
         col_idx: a column index of the insertion;
         value: a value to be inserted."""
-    def add_value_to_objective_matrix(
+    def add_element_to_objective_matrix(
         self, row_idx: int, col_idx: int, value: float
     ) -> None: ...
+    """A value insertion to the vector b.
+    Args:
+        constraint_number: a number of the constraint (starts from 0);
+        value: a value to be inserted."""
+    def add_element_to_b_vector(self, constraint_number: int, value: float) -> None: ...
     """A value insertion to a particular position in the particular constraint matrix.
     Args:
         constraint_number: a number of the constraint (starts from 0);
@@ -58,7 +60,7 @@ class SDPBuilderF32:
     is reinitialized (all matrices are zero).
     Returns:
         sdp task that can be sent to a solver."""
-    def build(self) -> SDPF32: ...
+    def build(self) -> SDPF64: ...
     def constraints_number(self) -> int: ...
     def variables_number(self) -> int: ...
 
@@ -93,20 +95,22 @@ class SDPBuilderF64:
     https://arxiv.org/pdf/1912.02949.
     Args:
         constraints_number: number of constraints;
-        variables_number: number of variables;
-        b: array b from the SDP above."""
+        variables_number: number of variables."""
 
-    def __init__(
-        self, constraints_number: int, variables_number: int, b: NDArray
-    ) -> None: ...
+    def __init__(self, constraints_number: int, variables_number: int) -> None: ...
     """A value insertion to a particular position in the objective function matrix.
     Args:
         row_idx: a row index of the insertion;
         col_idx: a column index of the insertion;
         value: a value to be inserted."""
-    def add_value_to_objective_matrix(
+    def add_element_to_objective_matrix(
         self, row_idx: int, col_idx: int, value: float
     ) -> None: ...
+    """A value insertion to the vector b.
+    Args:
+        constraint_number: a number of the constraint (starts from 0);
+        value: a value to be inserted."""
+    def add_element_to_b_vector(self, constraint_number: int, value: float) -> None: ...
     """A value insertion to a particular position in the particular constraint matrix.
     Args:
         constraint_number: a number of the constraint (starts from 0);

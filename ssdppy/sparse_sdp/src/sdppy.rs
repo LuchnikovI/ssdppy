@@ -1,7 +1,8 @@
-use crate::{errors::SDPError, sdp::Sdp, sdp_builder::SDPBuilder};
+use crate::{sdp::Sdp, sdp_builder::SDPBuilder};
 use num_traits::One;
 use numpy::{PyArray1, PyArrayMethods};
 use pyo3::{exceptions::PyValueError, pyclass, pymethods, Bound, Py, PyErr, PyResult, Python};
+use std::borrow::BorrowMut;
 
 macro_rules! impl_sdppy {
     ($dtype:ident, $builder_name:ident, $name:ident) => {
@@ -15,24 +16,17 @@ macro_rules! impl_sdppy {
         impl $builder_name {
             #[new]
             pub fn new(
+                py: Python<'_>,
                 constraints_number: usize,
                 variables_number: usize,
-                b: Bound<'_, PyArray1<$dtype>>,
             ) -> PyResult<Self> {
-                let b_slice = unsafe { b.as_slice().map_err(|_| PyValueError::new_err("b vector must be contiguous in memory"))? };
-                if b_slice.len() != constraints_number {
-                    Err(SDPError::ConstraintsNumberBSizeMismatch {
-                        total_constraints_number: constraints_number,
-                        b_size: b_slice.len(),
-                    }.into())
-                } else {
-                    Ok(Self {
-                        builder: SDPBuilder::new(constraints_number, variables_number),
-                        b: b.into(),
-                    })
-                }
+                let b = PyArray1::zeros_bound(py, [constraints_number], false).into();
+                Ok(Self {
+                    builder: SDPBuilder::new(constraints_number, variables_number),
+                    b,
+                })
             }
-            pub fn add_value_to_objective_matrix(
+            pub fn add_element_to_objective_matrix(
                 &mut self,
                 row_idx: usize,
                 col_idx: usize,
@@ -52,6 +46,23 @@ macro_rules! impl_sdppy {
                 self.builder
                     .add_element(constraint_number + 1, row_idx, col_idx, element)
                     .map_err(|err| err.into())
+            }
+            pub fn add_element_to_b_vector(
+                &mut self,
+                py: Python<'_>,
+                constraint_number: usize,
+                value: $dtype,
+            ) -> PyResult<()> {
+                unsafe {
+                    let b_slice = self.b.bind(py).borrow_mut().as_slice_mut()?;
+                    if let Some(v) = b_slice.get_mut(constraint_number) {
+                        *v = value;
+                    } else {
+                        let total_constraints_number = self.builder.get_constraints_number();
+                        return Err(PyValueError::new_err(format!("Constraint number {constraint_number} is out of total constraints number {total_constraints_number}")))
+                    }
+                }
+                Ok(())
             }
             pub fn build(&mut self) -> PyResult<$name> {
                 let empty_builder = SDPBuilder::new(

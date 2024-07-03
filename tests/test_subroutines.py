@@ -23,12 +23,11 @@ def _test_subroutines(
     unique_pos = set()
     for pos in random_pos:
         unique_pos.add((pos[0], pos[1]))
-    b = np.empty((constr_num,), dtype=dtype)
-    builder = builder_type(constr_num, var_num, b)
+    builder = builder_type(constr_num, var_num)
     c = np.zeros((var_num, var_num), dtype)
     for row_idx, col_idx in unique_pos:
         elem = float(np.random.normal(size=()))
-        builder.add_value_to_objective_matrix(row_idx, col_idx, elem)
+        builder.add_element_to_objective_matrix(row_idx, col_idx, elem)
         c[row_idx, col_idx] = elem
     a = np.zeros((constr_num, var_num, var_num), dtype)
     for constr_idx in range(constr_num):
@@ -61,7 +60,6 @@ def _test_subroutines(
     assert np.isclose(
         true_brackets, brackets, atol=atol
     ).all(), f"{true_brackets}, {brackets}"
-    assert sdp._get_b().ctypes.data == b.ctypes.data
 
 
 _test_subroutines(

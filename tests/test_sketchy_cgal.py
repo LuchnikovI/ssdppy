@@ -29,11 +29,12 @@ if constraints_number != 0:
     b /= op_norm
 
 # configure sketchy sgal solver
-sparse_sdp_builder = SDPBuilderF64(constraints_number, variables_number, b)
+sparse_sdp_builder = SDPBuilderF64(constraints_number, variables_number)
 for row_idx, row in enumerate(c):
     for col_idx, value in enumerate(row):
-        sparse_sdp_builder.add_value_to_objective_matrix(row_idx, col_idx, value)
+        sparse_sdp_builder.add_element_to_objective_matrix(row_idx, col_idx, value)
 for constr_num, constr in enumerate(a):
+    sparse_sdp_builder.add_element_to_b_vector(constr_num, b[constr_num])
     for row_idx, row in enumerate(constr):
         for col_idx, value in enumerate(row):
             sparse_sdp_builder.add_element_to_constraint_matrix(
