@@ -1,4 +1,5 @@
 from typing import Union, Tuple
+from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray, DTypeLike
 from sparse_sdp import SDPF64, SDPF32
@@ -12,6 +13,11 @@ def _find_gamma(z: NDArray, b: NDArray, t: int, beta0: Float, eta: Float) -> NDA
     return np.minimum(
         4 * beta0 * np.sqrt(t + 2) * (eta**2) / (np.linalg.norm(z - b) ** 2), beta0
     )
+
+
+@dataclass
+class Info:
+    infeasibility: float
 
 
 class SketchyCGALSolver:
@@ -50,9 +56,10 @@ class SketchyCGALSolver:
     """Solves SDP problem.
     Returns:
         truncated eigen decomposition of the resulting matrix, i.e.
-        a matrix U with eigenvectors and a vector S with eigenvalues."""
+        a matrix U with eigenvectors and a vector S with eigenvalues, and
+        information about result."""
 
-    def solve(self) -> Tuple[NDArray, NDArray]:
+    def solve(self) -> Tuple[NDArray, NDArray, Info]:
         sketch = NystromSketch(self._variables_number, self._sketch_size, self._dtype)
         z = np.zeros(self._sdp._get_b().shape, self._dtype)
         y = np.zeros(self._sdp._get_b().shape, self._dtype)
@@ -81,4 +88,6 @@ class SketchyCGALSolver:
             sketch.update(eigvec, eta)
         u, s = sketch.reconstruct()
         s = s + ((1 - s.sum()) / self._sketch_size)
-        return u, s
+        infeasibility = self._sdp._compute_infeasibility(u, s)
+        info = Info(infeasibility)
+        return u, s, info

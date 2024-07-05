@@ -1,6 +1,6 @@
 use crate::{sdp::Sdp, sdp_builder::SDPBuilder};
 use num_traits::{One, Zero};
-use numpy::{PyArray1, PyArrayMethods};
+use numpy::{PyArray1, PyArray2, PyArrayMethods, PyUntypedArrayMethods};
 use pyo3::{exceptions::PyValueError, pyclass, pymethods, Bound, Py, PyErr, PyResult, Python};
 use std::borrow::BorrowMut;
 
@@ -194,6 +194,34 @@ macro_rules! impl_sdppy {
                     }
                     self.sdp.compute_brackets(src, dst, alpha, 1);
                 }
+            }
+            fn _compute_infeasibility(
+                &self,
+                py: Python<'_>,
+                u: Bound<'_, PyArray2<$dtype>>,
+                s: Bound<'_, PyArray1<$dtype>>,
+            ) -> PyResult<$dtype> {
+                let u_shape = u.shape();
+                let lda = u_shape[0];
+                let cols_num = u_shape[1];
+                let u = unsafe { u.as_slice().unwrap() };
+                let s = unsafe { s.as_slice().unwrap() };
+                let b = self.b.bind(py);
+                let b_slice = unsafe { b.as_slice().unwrap() };
+                assert_eq!(lda, self.variables_number());
+                assert_eq!(cols_num, s.len());
+                let mut frob_dist_sq = $dtype::zero();
+                let mut frob_b_sq = $dtype::zero();
+                for constr_num in 0..self.constraints_number() {
+                    let mut trace_val = $dtype::zero();
+                    for i in 0..cols_num {
+                        let col = &u[(i * lda)..((i + 1) * lda)];
+                        trace_val += unsafe { self.sdp.compute_single_bracket(col, s[i], constr_num + 1) };
+                    }
+                    frob_dist_sq += (b_slice[constr_num] - trace_val).powi(2);
+                    frob_b_sq += b_slice[constr_num].powi(2);
+                }
+                Ok(frob_dist_sq.sqrt() / frob_b_sq.sqrt())
             }
             #[getter]
             fn constraints_number(&self) -> usize {

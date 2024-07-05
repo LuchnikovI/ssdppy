@@ -47,7 +47,7 @@ def main():
     scgal_solver = SketchyCGALSolver(sparse_sdp, sketch_size)
 
     # solving sdp using sketchy sgal
-    u, s = scgal_solver.solve()
+    u, s, info = scgal_solver.solve()
     cgal_x = u @ (s * u).T
 
     # solving sdp with cvx
@@ -60,6 +60,7 @@ def main():
     print(
         f"Relative error between solutions {np.linalg.norm(cgal_x - x.value) / np.linalg.norm(cgal_x)}"
     )
+    print(f"Infeasibility: {info.infeasibility}")
 
 
 if __name__ == "__main__":

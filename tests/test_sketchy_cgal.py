@@ -1,10 +1,11 @@
+from math import fabs
 import cvxpy as cp
 import numpy as np
 from ssdppy import SDPBuilderF64, SketchyCGALSolver
 
 variables_number = 10
 constraints_number = 7
-sketch_size = 3
+sketch_size = 4
 
 np.random.seed(42)
 
@@ -44,8 +45,9 @@ sparse_sdp = sparse_sdp_builder.build()
 scgal_solver = SketchyCGALSolver(sparse_sdp, sketch_size)
 
 # solving sdp using sketchy sgal
-u, s = scgal_solver.solve()
+u, s, info = scgal_solver.solve()
 cgal_x = u @ (s * u).T
+assert info.infeasibility < 1e-2
 
 # solving sdp with cvx
 x = cp.Variable((variables_number, variables_number), symmetric=True)
