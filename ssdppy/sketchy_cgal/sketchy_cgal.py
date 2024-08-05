@@ -15,6 +15,12 @@ def _find_gamma(z: NDArray, b: NDArray, t: int, beta0: Float, eta: Float) -> NDA
     )
 
 
+"""The information about optimization process. It includes:
+    infeasibility: |Tr(AX) - b| / |b|
+    TODO: an estimation of the duality gap
+"""
+
+
 @dataclass
 class Info:
     infeasibility: float

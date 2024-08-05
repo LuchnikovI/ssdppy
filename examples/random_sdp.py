@@ -15,7 +15,8 @@ def main():
     # matrix defining the objective function (with normalization)
     c = np.random.randn(variables_number, variables_number)
     c = (c + c.T) / 2
-    c /= np.linalg.norm(c)
+    # We skip normalization and use a `.normalize_objective_matrix()` method later
+    # c /= np.linalg.norm(c)
     # constraints (with normalization)
     b = np.random.randn(constraints_number)
     a = np.random.randn(constraints_number, variables_number, variables_number)
@@ -43,12 +44,20 @@ def main():
                 sparse_sdp_builder.add_element_to_constraint_matrix(
                     constr_num, row_idx, col_idx, value
                 )
+    # here we normalize an objective function matrix
+    sparse_sdp_builder.normalize_objective_matrix()
     sparse_sdp = sparse_sdp_builder.build()
     scgal_solver = SketchyCGALSolver(sparse_sdp, sketch_size)
 
     # solving sdp using sketchy sgal
     u, s, info = scgal_solver.solve()
     cgal_x = u @ (s * u).T
+    
+    # here we check that the objective function computation via `.compute_objective_value()` method
+    # is correct
+    objective_function_value_from_sdp_task = sparse_sdp.compute_objective_value(u, s)
+    objective_function_value_from_direct_computation = np.trace(c @ u @ (s.reshape((-1, 1)) * u.T.conj()))
+    assert np.isclose(objective_function_value_from_sdp_task, objective_function_value_from_direct_computation).all()
 
     # solving sdp with cvx
     x = cp.Variable((variables_number, variables_number), symmetric=True)

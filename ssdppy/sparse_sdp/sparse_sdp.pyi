@@ -5,6 +5,8 @@ class SDPF32:
     def constraints_number(self) -> int: ...
     @property
     def variables_number(self) -> int: ...
+    @property
+    def _objective_norm(self) -> float: ...
     def _get_b(self) -> NDArray: ...
     def _compute_infeasibility(self, u: NDArray, s: NDArray) -> float: ...
     def _apply_objective_matrix(
@@ -16,6 +18,14 @@ class SDPF32:
     def _compute_brackets(
         self, src: NDArray, dst: NDArray, alpha: float, beta: float
     ) -> None: ...
+    """Computes the objective function value that corresponds to the initial
+    (not normalized) objective function matrix.
+    Args:
+        u: matrix with singular vectors of the argument;
+        s: singular values of the argument;
+    Returns:
+        objective function value."""
+    def compute_objective_value(self, u: NDArray, s: NDArray) -> float: ...
 
 class SDPBuilderF32:
     """A single-precision builder class for the following semidefinite
@@ -75,6 +85,8 @@ class SDPF64:
     def constraints_number(self) -> int: ...
     @property
     def variables_number(self) -> int: ...
+    @property
+    def _objective_norm(self) -> float: ...
     def _get_b(self) -> NDArray: ...
     def _compute_infeasibility(self, u: NDArray, s: NDArray) -> float: ...
     def _apply_objective_matrix(
@@ -86,6 +98,14 @@ class SDPF64:
     def _compute_brackets(
         self, src: NDArray, dst: NDArray, alpha: float, beta: float
     ) -> None: ...
+    """Computes the objective function value that corresponds to the initial
+    (not normalized) objective function matrix.
+    Args:
+        u: matrix with singular vectors of the argument;
+        s: singular values of the argument;
+    Returns:
+        objective function value."""
+    def compute_objective_value(self, u: NDArray, s: NDArray) -> float: ...
 
 class SDPBuilderF64:
     """A double-precision builder class for the following semidefinite

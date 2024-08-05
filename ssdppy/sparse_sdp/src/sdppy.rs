@@ -10,6 +10,7 @@ macro_rules! impl_sdppy {
         pub struct $builder_name {
             builder: SDPBuilder<$dtype>,
             b: Py<PyArray1<$dtype>>,
+            objective_norm: $dtype,
         }
 
         #[pymethods]
@@ -24,6 +25,7 @@ macro_rules! impl_sdppy {
                 Ok(Self {
                     builder: SDPBuilder::new(constraints_number, variables_number),
                     b,
+                    objective_norm: $dtype::one(),
                 })
             }
             pub fn add_element_to_objective_matrix(
@@ -56,6 +58,7 @@ macro_rules! impl_sdppy {
                     norm += val * val;
                 }
                 norm = norm.sqrt();
+                self.objective_norm = norm;
                 for (key, val) in self.builder.coordinates.iter_mut() {
                     if key.0 != 0 {
                         break;
@@ -109,6 +112,7 @@ macro_rules! impl_sdppy {
                 Ok($name {
                     sdp: Sdp::try_from(builder).map_err(|err| Into::<PyErr>::into(err))?,
                     b: self.b.clone(),
+                    norm: self.objective_norm,
                 })
             }
             #[getter]
@@ -134,6 +138,7 @@ macro_rules! impl_sdppy {
         pub struct $name {
             sdp: Sdp<$dtype>,
             b: Py<PyArray1<$dtype>>,
+            norm: $dtype,
         }
 
         #[pymethods]
@@ -155,6 +160,10 @@ macro_rules! impl_sdppy {
                     }
                     self.sdp.apply_single_matrix(src, dst, alpha, 0);
                 }
+            }
+            #[getter]
+            fn _objective_norm(&self) -> $dtype {
+                self.norm
             }
             fn _apply_weighted_constraints<'py>(
                 &self,
@@ -222,6 +231,25 @@ macro_rules! impl_sdppy {
                     frob_b_sq += b_slice[constr_num].powi(2);
                 }
                 Ok(frob_dist_sq.sqrt() / frob_b_sq.sqrt())
+            }
+            fn compute_objective_value(
+                &self,
+                u: Bound<'_, PyArray2<$dtype>>,
+                s: Bound<'_, PyArray1<$dtype>>,
+            ) -> PyResult<$dtype> {
+                let u_shape = u.shape();
+                let lda = u_shape[0];
+                let cols_num = u_shape[1];
+                let u = unsafe { u.as_slice().unwrap() };
+                let s = unsafe { s.as_slice().unwrap() };
+                assert_eq!(lda, self.variables_number());
+                assert_eq!(cols_num, s.len());
+                let mut objective_value = $dtype::zero();
+                for i in 0..cols_num {
+                    let col = &u[(i * lda)..((i + 1) * lda)];
+                    objective_value += unsafe { self.sdp.compute_single_bracket(col, s[i], 0) };
+                }
+                Ok(objective_value * self.norm)
             }
             #[getter]
             fn constraints_number(&self) -> usize {

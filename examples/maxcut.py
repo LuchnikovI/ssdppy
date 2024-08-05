@@ -83,29 +83,14 @@ best_cut_values = [
     7006,
 ]
 
-"""This function evaluates the cut value of a given graph and a cut.
-Args:
-    graph: a dict mapping an edge to its weight;
-    cut: a 1D array with values 1 and -1 representing a cut.
-Returns:
-    cut value."""
-
-
-def eval_cut_value(graph: Dict[Tuple[int, int], float], cut: NDArray) -> float:
-    cut_val = 0.0
-    for (i, j), val in graph.items():
-        if cut[i] != cut[j]:
-            cut_val += val
-    return cut_val
-
 
 def main():
 
     # parameters
     gset_graph_id = int(sys.argv[1])
-    sketch_size = 100
+    sketch_size = 150
     randomized_rounding_attempts_number = 1000
-    cgal_iterations_number = 1000
+    cgal_iterations_number = 3000
     seed = 42
 
     print(f"G{gset_graph_id} is running...")
@@ -132,17 +117,25 @@ def main():
 
     # populate sdp builder
     for i, j, val in map(parse_line, filter(lambda x: len(x) != 0, lines[1:])):
-        sdp_builder.add_element_to_objective_matrix(i, j, val)
-        sdp_builder.add_element_to_objective_matrix(j, i, val)
-        degrees[i] += 1
-        degrees[j] += 1
-        graph[(i, j)] = val
+        sdp_builder.add_element_to_objective_matrix(i, j, 0.25 * val)
+        sdp_builder.add_element_to_objective_matrix(j, i, 0.25 * val)
+        degrees[i] += 0.25 * val
+        degrees[j] += 0.25 * val
     for i, d in enumerate(degrees):
         sdp_builder.add_element_to_objective_matrix(i, i, -float(d))
-    # normalize -laplacian
+    # normalize -laplacian / 4
     sdp_builder.normalize_objective_matrix()
     # build an sdp instance
     sdp = sdp_builder.build()
+
+    # following two closures are useful to evaluate the solution
+    """This closure takes argument in a decomposed form and compute the objective function value."""
+    def objective_function_value(u: NDArray, s: NDArray) -> NDArray:
+        return -sdp.compute_objective_value(u, s) * sdp.variables_number
+
+    """This closure computes the cut value."""
+    def cut_value(cut: NDArray) -> NDArray:
+        return -sdp.compute_objective_value(cut.copy().reshape((-1, 1)), np.array([1.]))
 
     # solve an sdp
     solver = SketchyCGALSolver(sdp, T=cgal_iterations_number, sketch_size=sketch_size)
@@ -153,6 +146,8 @@ def main():
     end_time = time.time()
     print(f"Solver runtime: {end_time - start_time} seconds")
 
+    print(f"SDP relaxation objective function value: {objective_function_value(u, s)}")
+
     # randomized rounding
     tau = np.random.randn(randomized_rounding_attempts_number, sketch_size)
     tau /= np.linalg.norm(tau, axis=1, keepdims=True)
@@ -160,12 +155,12 @@ def main():
     cuts = np.sign(np.tensordot(u, tau, axes=[[1], [1]]))
     maxcut = 0.0
     for cut in cuts.T:
-        maxcut = max(maxcut, eval_cut_value(graph, cut))
+        maxcut = max(maxcut, cut_value(cut))
     print(f"Best known cut: {best_cut_values[gset_graph_id - 1]}")
     print(
         f"Goemans-Williamson cut estimation: {0.878 * best_cut_values[gset_graph_id - 1]}"
     )
-    print(f"Infeasibility of the result: {info.infeasibility}")
+    print(f"Infeasibility of the result (|<AX> - b|_F / |b|_F): {info.infeasibility}")
     print(
         f"Randomized rounding with {randomized_rounding_attempts_number} attempts gives cut value: {maxcut}"
     )
@@ -174,7 +169,7 @@ def main():
     maxcut = 0.0
     cuts = np.sign(u)
     for cut in cuts.T:
-        maxcut = max(maxcut, eval_cut_value(graph, cut))
+        maxcut = max(maxcut, cut_value(cut))
     print(f"Rounding from SketchyCGAL paper gives cut value: {maxcut}")
 
 
