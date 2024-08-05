@@ -13,4 +13,7 @@ def test_nystrom_sketch():
         sketch.update(v, eta)
         sketched_matrix = (1 - eta) * sketched_matrix + eta * np.outer(v, v)
     (u, s) = sketch.reconstruct()
-    assert np.isclose(u @ (s[:, np.newaxis] * u.T.conj()), sketched_matrix).all()
+    reconstructed_sketch = u @ (s[:, np.newaxis] * u.T.conj())
+    assert np.isclose(
+        reconstructed_sketch, sketched_matrix
+    ).all(), f"{reconstructed_sketch}\n{sketched_matrix}"

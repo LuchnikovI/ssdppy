@@ -34,10 +34,11 @@ class NystromSketch:
         self._sketch = _rank1_update_noalloc(self._sketch, v, self.__vec, eta)
 
     def reconstruct(self) -> Tuple[NDArray, NDArray]:
+        # TODO: must be a better way to regularize cholesky, try to improve
         sigma = (
             np.sqrt(self._variables_number)
-            * np.finfo(self._dtype).eps  # type: ignore
-            * np.max(norm(self._sketch, axis=1))  # allocates only a small buffer
+            * 1e-14
+            * np.max(norm(self._sketch, axis=0))  # allocates only a small buffer
         )
         self._sketch = _sum_noalloc(self._sketch, self._omega, sigma)
         # matrices below are small, can go high level
