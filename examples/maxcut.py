@@ -130,12 +130,16 @@ def main():
 
     # following two closures are useful to evaluate the solution
     """This closure takes argument in a decomposed form and compute the objective function value."""
+
     def objective_function_value(u: NDArray, s: NDArray) -> NDArray:
         return -sdp.compute_objective_value(u, s) * sdp.variables_number
 
     """This closure computes the cut value."""
+
     def cut_value(cut: NDArray) -> NDArray:
-        return -sdp.compute_objective_value(cut.copy().reshape((-1, 1)), np.array([1.]))
+        return -sdp.compute_objective_value(
+            cut.copy().reshape((-1, 1)), np.array([1.0])
+        )
 
     # solve an sdp
     solver = SketchyCGALSolver(sdp, T=cgal_iterations_number, sketch_size=sketch_size)
@@ -160,7 +164,7 @@ def main():
     print(
         f"Goemans-Williamson cut estimation: {0.878 * best_cut_values[gset_graph_id - 1]}"
     )
-    print(f"Infeasibility of the result (|<AX> - b|_F / |b|_F): {info.infeasibility}")
+    print(f"Infeasibility of the result (|<AX> - b|_F / max(|b|_F, |<AX>|_F)): {info.infeasibility}")
     print(
         f"Randomized rounding with {randomized_rounding_attempts_number} attempts gives cut value: {maxcut}"
     )
