@@ -221,6 +221,7 @@ macro_rules! impl_sdppy {
                 assert_eq!(cols_num, s.len());
                 let mut frob_dist_sq = $dtype::zero();
                 let mut frob_b_sq = $dtype::zero();
+                let mut frob_trace_sq = $dtype::zero();
                 for constr_num in 0..self.constraints_number() {
                     let mut trace_val = $dtype::zero();
                     for i in 0..cols_num {
@@ -229,8 +230,9 @@ macro_rules! impl_sdppy {
                     }
                     frob_dist_sq += (b_slice[constr_num] - trace_val).powi(2);
                     frob_b_sq += b_slice[constr_num].powi(2);
+                    frob_trace_sq += trace_val.powi(2);
                 }
-                Ok(frob_dist_sq.sqrt() / frob_b_sq.sqrt())
+                Ok(frob_dist_sq.sqrt() / (|x, y| if x > y { x } else { y })(frob_b_sq.sqrt(), frob_trace_sq.sqrt()))
             }
             fn compute_objective_value(
                 &self,
